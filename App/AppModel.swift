@@ -96,6 +96,12 @@ final class AppModel: ObservableObject {
                     Task { @MainActor in self.update(p.transferId) { $0.done = sent } }
                 }
                 update(p.transferId) { $0.state = .done; $0.done = $0.size }
+                // Finished uploads tidy themselves away; failed ones stay so you can see why.
+                let id = p.transferId
+                Task {
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    withAnimation { transfers.removeAll { $0.id == id } }
+                }
             } catch {
                 update(p.transferId) { $0.state = .failed(error.localizedDescription) }
                 if (error as? ApiError)?.status == 401 { await signOut(); break }
