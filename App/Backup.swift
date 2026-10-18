@@ -14,7 +14,7 @@ import UniformTypeIdentifiers
 @MainActor
 final class Backup: NSObject, ObservableObject, PHPhotoLibraryChangeObserver {
     static let shared = Backup()
-    static let taskId = "com.cellocloud.backup"
+    nonisolated static let taskId = "com.cellocloud.backup"
     static let folderName = "Camera backup"
 
     weak var cloud: Cloud?
