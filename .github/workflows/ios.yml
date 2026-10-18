@@ -1,0 +1,71 @@
+name: ios
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    # The encryption, plus a two-way check against the website's own crypto code.
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Website crypto makes test vectors
+        run: node Interop/vectors.mjs gen "$RUNNER_TEMP/interop"
+      - name: Swift tests (open the website's, make our own)
+        env:
+          CELLOCLOUD_INTEROP: ${{ runner.temp }}/interop
+        run: swift test --package-path Core
+      - name: Website crypto opens what Swift made
+        run: node Interop/vectors.mjs verify "$RUNNER_TEMP/interop"
+
+  sideload:
+    # Unsigned iPhone build to install with Sideloadly and an Apple ID. Own bundle id, so the
+    # real com.cellocloud.app stays free for the paid team (TestFlight / App Store).
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use the newest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_2[6-9]*.app 2>/dev/null | grep -v -i beta | sort -V | tail -1)
+          if [ -n "$X" ]; then sudo xcode-select -s "$X"; fi
+          xcodebuild -version
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build for iPhone (unsigned)
+        run: |
+          # Full output to a file; on failure show every error (a plain tail can cut them off).
+          xcodebuild -project CelloCloud.xcodeproj -scheme CelloCloud -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CELLOCLOUD_BUNDLE_ID=com.cellocloud.sideload \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" build > build.log 2>&1 \
+            || { grep -E "error:" build.log | sort -u | head -80; tail -n 30 build.log; exit 1; }
+          grep -E "warning:" build.log | grep -v "/SourcePackages/" | sort -u | head -40 || true
+          tail -n 5 build.log
+      - name: Package IPA
+        run: |
+          set -e
+          APP=build/Build/Products/Release-iphoneos/CelloCloud.app
+          mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          P=out/Payload/CelloCloud.app/Info.plist
+          # Shown in Settings → About, so you can tell which IPA is installed.
+          /usr/libexec/PlistBuddy -c "Add :CelloCloudBuildDate string $(date -u +%Y-%m-%d) (${GITHUB_SHA::7})" "$P"
+          (cd out && zip -qry ../cellocloud-sideload.ipa Payload)
+          ls -l *.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cellocloud-sideload
+          path: cellocloud-sideload.ipa
+          retention-days: 30
