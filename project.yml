@@ -8,8 +8,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "0.1.1"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "2"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     # Overridden for the sideload build (a free Apple ID must not claim the real bundle id).
@@ -38,6 +38,12 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSPhotoLibraryUsageDescription: Camera backup reads new photos and videos to encrypt and back them up to your CelloCloud.
         NSPhotoLibraryAddUsageDescription: Save photos and videos from your CelloCloud to your library.
+        # Cindy (Settings > Cindy): talking to her, scanning the PC's pairing code, reaching the PC at home
+        NSMicrophoneUsageDescription: Talk to Cindy, your assistant on your PC, when you tap her mic.
+        NSCameraUsageDescription: Scan the pairing code Cindy shows on your PC.
+        NSLocalNetworkUsageDescription: Reach Cindy on your PC over your home Wi-Fi.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UIBackgroundModes: [fetch, processing]
         BGTaskSchedulerPermittedIdentifiers: [com.cellocloud.backup]
     settings:

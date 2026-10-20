@@ -13,7 +13,10 @@ struct CelloCloudApp: App {
         }
         Files.clearOpened()
         Backup.register()
-        _model = StateObject(wrappedValue: AppModel())
+        let model = AppModel()
+        _model = StateObject(wrappedValue: model)
+        // Cindy (the user's assistant) inside CelloCloud: off until switched on in Settings
+        CindyActions.install(model)
     }
 
     var body: some Scene {

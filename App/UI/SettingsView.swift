@@ -45,6 +45,8 @@ struct SettingsTab: View {
                     Text("New photos and videos you take go into the \"\(Backup.folderName)\" folder, encrypted. iOS lets it run in the background only now and then (usually overnight while charging); opening CelloCloud backs up right away.")
                 }
 
+                CindySettingsSection()
+
                 Section {
                     Button("Change password") { changingPassword = true }
                     Button("Sign out") { confirmSignOut = true }
